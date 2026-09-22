@@ -4,7 +4,11 @@ const cors = require("cors");
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 
-const serviceAccount = require("./serviceAccountKey.json");
+const serviceAccount = require(
+    process.env.RENDER
+        ? "/etc/secrets/serviceAccountKey.json"
+        : "./serviceAccountKey.json"
+);
 
 initializeApp({
     credential: cert(serviceAccount)
