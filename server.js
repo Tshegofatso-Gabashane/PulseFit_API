@@ -167,6 +167,7 @@ app.post("/api/meals", async (req, res) => {
     }
 });
 // Upload an image to Azure Blob Storage
+// Upload an image to Azure Blob Storage
 app.post("/api/uploads/image", verifyFirebaseToken, upload.single("image"), async (req, res) => {
     try {
         if (!req.file) {
@@ -193,12 +194,20 @@ app.post("/api/uploads/image", verifyFirebaseToken, upload.single("image"), asyn
             }
         });
 
+        // Save upload information
         const document = await db.collection("uploads").add({
             userId: req.user.uid,
             blobName: blobName,
             contentType: req.file.mimetype,
             createdAt: new Date().toISOString()
         });
+
+        // Save the image reference in the user's profile
+        await db.collection("users").doc(req.user.uid).set({
+            profileImageBlobName: blobName,
+            profileImageContentType: req.file.mimetype,
+            profileImageUpdatedAt: new Date().toISOString()
+        }, { merge: true });
 
         res.status(201).json({
             message: "Image uploaded successfully",
