@@ -223,6 +223,44 @@ app.post("/api/uploads/image", verifyFirebaseToken, upload.single("image"), asyn
         });
     }
 });
+
+// Retrieve the user's profile image from Azure Blob Storage
+app.get("/api/profile/image", verifyFirebaseToken, async (req, res) => {
+    try {
+        const userDoc = await db.collection("users").doc(req.user.uid).get();
+
+        if (!userDoc.exists || !userDoc.get("profileImageBlobName")) {
+            return res.status(404).json({
+                error: "Profile image not found."
+            });
+        }
+
+        const blobName = userDoc.get("profileImageBlobName");
+        const contentType = userDoc.get("profileImageContentType") || "image/jpeg";
+
+        const blobClient = containerClient.getBlobClient(blobName);
+        const downloadResponse = await blobClient.download();
+
+        if (!downloadResponse.readableStreamBody) {
+            return res.status(500).json({
+                error: "Unable to retrieve profile image."
+            });
+        }
+
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Cache-Control", "private, max-age=300");
+
+        downloadResponse.readableStreamBody.pipe(res);
+
+    } catch (error) {
+        console.error("Profile image retrieval error:", error);
+
+        res.status(500).json({
+            error: "Unable to retrieve profile image."
+        });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
